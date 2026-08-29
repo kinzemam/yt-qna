@@ -80,9 +80,6 @@ chain = prompt | llm | parser
 # embedding model
 embeddings = OllamaEmbeddings(model="qwen3-embedding:0.6b")
 
-# text splitter - makes chunks
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
-
 # vector store
 vectordb = Chroma(
     collection_name="yt_transcipts",
