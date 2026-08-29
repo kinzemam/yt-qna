@@ -1,0 +1,16 @@
+# React
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# Chroma
+chroma_db/
