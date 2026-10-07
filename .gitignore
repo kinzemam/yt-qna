@@ -14,3 +14,10 @@ venv/
 
 # Chroma
 chroma_db/
+
+.env
+.venv/
+__pycache__/
+chroma_db/
+flashrank_cache/
+node_modules/

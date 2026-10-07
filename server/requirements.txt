@@ -7,3 +7,7 @@ langchain-ollama
 langchain-chroma
 numpy
 fastapi
+flashrank
+psycopg[binary]
+bcrypt
+pyjwt

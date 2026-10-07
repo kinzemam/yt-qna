@@ -3,91 +3,124 @@ import axios from "axios";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
 import VideoPlayer from "./VideoPlayer";
-function App() {
-    const [videoId, setVideoId] = useState("");
-    const [question, setQuestion] = useState("");
-    const [answer, setAnswer] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+import Header from "./components/header";
+import Login from "./pages/Login";
+import {
+    BrowserRouter,
+    Routes,
+    Route,
+    Navigate,
+    redirect,
+} from "react-router-dom";
+import Home from "./pages/Home";
+import Signup from "./pages/Signup";
+export default function App() {
+    const [user, setUser] = useState(() => {
+        const savedUser = localStorage.getItem("user");
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const [passwordCheck, setPasswordCheck] = useState(true);
 
-        if (!videoId || !question) {
-            setError("Please enter both a video ID and a question.");
-            return;
-        }
-
-        setLoading(true);
-        setError("");
-        setAnswer("");
-
+    async function loginSub(event) {
+        event.preventDefault();
+        setPasswordCheck(true);
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
         try {
-            const response = await axios.post("http://127.0.0.1:8000/ask", {
-                video_id: videoId,
-                question: question,
+            const result = await axios.post("http://127.0.0.1:8000/login", data, {
+                withCredentials: true,
             });
-
-            setAnswer(response.data.answer);
+            if (result.status == 200) {
+                const token = result.data["access_token"];
+                const response = await axios.get("http://127.0.0.1:8000/me", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    }
+                });
+                console.log(response);
+                if (response.status == 200) {
+                    localStorage.setItem("token", token);
+                    localStorage.setItem("user", JSON.stringify(response.data));
+                    setUser(response.data);
+                }
+            }
         } catch (err) {
-            console.error(err);
-            setError("Something went wrong. Please try again.");
-        } finally {
-            setLoading(false);
+            console.error("Authentication failed", err);
+            if (err.response && err.response.status === 401) {
+                setPasswordCheck(false);
+                console.log(err.response.data)
+            }
         }
-    };
+    }
+
+    function logoutHandle(event) {
+        event.preventDefault();
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        setUser(null);
+    }
+
+    async function signupSub(event) {
+        event.preventDefault()
+        const formData = new FormData(event.target)
+        const data = Object.fromEntries(formData.entries())
+        try {
+            const result = await axios.post("http://127.0.0.1:8000/signup", data);
+            console.log(result)
+            if (result.status == 200 || result.status == 201) {
+                
+                const loginResult = await axios.post("http://127.0.0.1:8000/login", {
+                    email: data.email,
+                    password: data.password
+                })
+                console.log("Login success:", loginResult);
+                if (loginResult.status == 200) {
+                    const token = loginResult.data["access_token"]
+
+                    const response = await axios.get("http://127.0.0.1:8000/me", {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    })
+                    if (response.status == 200) {
+                        localStorage.setItem("token", token)
+                        localStorage.setItem("user", JSON.stringify(response.data))
+                        setUser(response.data)
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(err.response)
+        }
+    }
 
     return (
-        <div className="app">
-            <header className="header">
-                <h1>YouTube Q&A</h1>
-                <p>Ask questions about any YouTube video.</p>
-            </header>
-
-            <main className="container">
-                
-                <div className="main">
-                    <form onSubmit={handleSubmit} className="question-form">
-                        <label htmlFor="videoId">YouTube Video ID</label>
-
-                        <input
-                            id="videoId"
-                            type="text"
-                            placeholder="e.g. dQw4w9WgXcQ"
-                            value={videoId}
-                            onChange={(e) => setVideoId(e.target.value)}
-                        />
-
-                        <label htmlFor="question">Your Question</label>
-
-                        <textarea
-                            id="question"
-                            placeholder="What is this video about?"
-                            value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
-                            rows="5"
-                        />
-
-                        <button type="submit" disabled={loading}>
-                            {loading ? "Thinking..." : "Ask Question"}
-                        </button>
-                    </form>
-
-                    {error && <div className="error">{error}</div>}
-
-                    {answer && (
-                        <section className="answer-section">
-                            <h2>Answer</h2>
-                            <p>
-                                <ReactMarkdown>{answer}</ReactMarkdown>
-                            </p>
-                        </section>
-                    )}
-                </div>
-                {videoId && <VideoPlayer videoId={videoId} />}        
-            </main>
-        </div>
+        <BrowserRouter>
+            <Routes>
+                <Route path="/signup" element={ user ? <Navigate to={'/me'} /> : <Signup handleSubmit={signupSub} />} />
+                <Route
+                    path="/login"
+                    element={
+                        user ? (
+                            <Navigate to="/me" />
+                        ) : (
+                            <Login handleSubmit={loginSub} passwordCheck={passwordCheck} />
+                        )
+                    }
+                />
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route
+                    path="/me"
+                    element={
+                        user ? (
+                            <Home handleSubmit={logoutHandle} />
+                        ) : (
+                            <Navigate to="/login" replace />
+                        )
+                    }
+                />
+            </Routes>
+        </BrowserRouter>
     );
 }
-
-export default App;

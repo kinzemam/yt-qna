@@ -11,14 +11,16 @@ body {
   color: #222;
 }
 
+.header {
+  text-align: center;
+}
+
+/* 
 .app {
   min-height: 100vh;
 }
 
-.header {
-  text-align: center;
-  padding: 60px 20px 30px;
-}
+
 
 .header h1 {
   font-size: 42px;
@@ -124,4 +126,31 @@ body {
   background: #ffe5e5;
   color: #c00;
   border-radius: 8px;
+} */
+
+.auth{
+  max-width: 500px;
+  /* background: lightblue; */
+  border-radius: 10px;
+  background: rgba(118, 144, 191, 0.2);
+border-radius: 16px;
+box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(5px);
+-webkit-backdrop-filter: blur(5px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.my-btn{
+  width: 100%;
+}
+
+/* class for two object to keep them apart horizontally using flex */
+.apart{
+  display: flex;
+  justify-content: space-between;
+}
+
+.incorrectPass{
+  background: rgba(163, 38, 38, 0.53) !important;
+  color: rgb(84, 10, 10);
 }

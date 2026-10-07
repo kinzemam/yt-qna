@@ -77,6 +77,23 @@ parser = StrOutputParser()
 # chain
 chain = prompt | llm | parser
 
+rewrite_prompt = ChatPromptTemplate.from_template("""
+Given the conversation so far and a new question, rewrite the new question so it can be
+understood on its own, without the conversation. If it is already clear on its own,
+return it unchanged. Return only the question, nothing else.
+
+Conversation:
+{history}
+
+New question: {query}
+
+Standalone question:""")
+
+rewrite_chain = rewrite_prompt | llm | parser
+
+def format_history(history):
+    return "\n".join(f"{m['role']}: {m['content'][:500]}" for m in history[-6:])
+
 # embedding model
 embeddings = OllamaEmbeddings(model="qwen3-embedding:0.6b")
 
@@ -87,63 +104,55 @@ vectordb = Chroma(
     persist_directory="./chroma_db",
 )
 
-
-def answer_question(video_id, query):
+def build_chunks(video_id, size=500, overlap = 3):
     video_id = video_id.strip()
-    query = query.strip()
-    result = yt_api.fetch(video_id)
-
+    snippets = list(yt_api.fetch(video_id))
     chunks = []
+    i = 0
+    while i < len(snippets):
+        text, j = "", i
+        while j < len(snippets) and len(text) < size:
+            text += " " + snippets[j].text
+            j += 1
+        last = snippets[j - 1]
+        chunks.append(Document(
+            page_content=text.strip(),
+            metadata={
+                "start": snippets[i].start,
+                "end": last.start + last.duration,
+                "video_id": video_id,
+            },
+        ))
+        if j >= len(snippets):
+            break
+        i = max(j - overlap, i + 1)   # step back `overlap` snippets
+    return chunks
 
-    current_text = ""
-    chunk_start = None
-
-    for snippet in result:
-
-        if chunk_start is None:
-            chunk_start = snippet.start
-
-        current_text += " " + snippet.text
-
-        if len(current_text) >= 500:
-
-            chunks.append(
-                Document(
-                    page_content=current_text.strip(),
-                    metadata={
-                        "start": chunk_start,
-                        "video_id": video_id
-                    }
-                )
-            )
-
-            current_text = ""
-            chunk_start = None
-    
-    if current_text.strip():
-
-        chunks.append(
-            Document(
-                page_content=current_text.strip(),
-                metadata={
-                    "start": chunk_start,
-                    "video_id": video_id
-                }
-            )
-        )
-    
+def ensure_ingested(video_id):
     existing = vectordb.get(where={"video_id": video_id})
     if not existing["ids"]:
+        chunks = build_chunks(video_id)
         print("Adding video to database...")
         vectordb.add_documents(chunks)
-    else:
-        print("Video already exists. Skipping ingestion.")
-    
-    results = vectordb.similarity_search(
+    # else:
+    #     print("Video already exists. Skipping ingestion.")
+
+def retrieve(video_id, query, k=5):
+    ensure_ingested(video_id)
+    return vectordb.similarity_search(
     query,
-    k=5,
+    k=k,
     filter={"video_id": video_id}
-)
+    )
+
+def answer_question(video_id, query, history=None):
+    
+    search_query = query
+    if history:
+        search_query = rewrite_chain.invoke({"history": history, "query": query}).strip()
+        print("Rewritten question: ", search_query)
+        
+    results = retrieve(video_id, search_query, k=5)
 
     context = "\n".join(
         f"Timestamp: {(int(res.metadata['start']) //60):02d}:"
@@ -152,5 +161,5 @@ def answer_question(video_id, query):
         for res in results
     )
 
-    response = chain.invoke({"query": query, "context": context})
+    response = chain.invoke({"query": search_query, "context": context})
     return response
