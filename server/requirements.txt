@@ -1,16 +1,11 @@
 youtube-transcript-api
 langchain-core
-langchain-text-splitters
 python-dotenv
 langchain-groq
-langchain-ollama
 langchain-chroma
 numpy
 fastapi
-flashrank
 psycopg[binary]
 bcrypt
 pyjwt
-fastembed 
-langchain-community
 langchain-google-genai

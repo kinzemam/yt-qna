@@ -2,12 +2,10 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 import os
 from dotenv import load_dotenv
-from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import time
 load_dotenv()
