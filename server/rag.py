@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+import time
 load_dotenv()
 
 # youtube transcript api
@@ -136,15 +137,38 @@ def build_chunks(video_id, size=500, overlap = 3):
         i = max(j - overlap, i + 1)   # step back `overlap` snippets
     return chunks
 
+def add_batch_with_retry(batch, tries=5):
+    for _ in range(tries):
+        try:
+            vectordb.add_documents(batch)
+            return
+        except Exception as e:
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                print("Rate limit hit, waiting 65 seconds...")
+                time.sleep(65)
+            else:
+                raise
+    raise RuntimeError("Still rate-limited after several retries")
+
+
 def ensure_ingested(video_id):
     existing = vectordb.get(where={"video_id": video_id})
-    if not existing["ids"]:
-        chunks = build_chunks(video_id)
-        print("Adding video to database...")
-        vectordb.add_documents(chunks)
-    # else:
-    #     print("Video already exists. Skipping ingestion.")
+    if existing["ids"]:
+        return
 
+    chunks = build_chunks(video_id)
+    print(f"Adding {len(chunks)} chunks...")
+    try:
+        for i in range(0, len(chunks), 20):
+            add_batch_with_retry(chunks[i:i + 20])
+            if i + 20 < len(chunks):
+                time.sleep(20)
+    except Exception:
+        # remove any partly added chunks so this video isn't skipped next time
+        partial = vectordb.get(where={"video_id": video_id})["ids"]
+        if partial:
+            vectordb.delete(ids=partial)
+        raise
 def retrieve(video_id, query, k=5):
     ensure_ingested(video_id)
     return vectordb.similarity_search(
