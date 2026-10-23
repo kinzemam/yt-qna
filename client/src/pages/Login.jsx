@@ -20,12 +20,7 @@ export default function Login(props) {
                     <input type="password" className="form-control" id="password" name="password" placeholder="Enter your password" />
                     <p className="mx-1 my-2" ></p>
                 </div>
-                {!props.passwordCheck && (
-                    <div className="mb-4 ">
-                        <input id="incorrect" type="text" className="form-control incorrectPass py-2" value="Incorrect Password" disabled hidden={props.passwordCheck ? true : false}
-                        />
-                    </div>
-                )}
+                {props.error && (<div className="errorBox mb-3 btn"><input className="px-2 py-2 btn " type="text" name="error" id="error" value={props.error} disabled/></div>) }
 
                 <div className="mb-3 text-center">
                     <input type="submit" className="px-3 py-2 btn btn-outline-dark my-btn" value="Lets Go!" />

@@ -5,8 +5,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+import os
 from dotenv import load_dotenv
-
+from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 load_dotenv()
 
 # youtube transcript api
@@ -95,13 +97,19 @@ def format_history(history):
     return "\n".join(f"{m['role']}: {m['content'][:500]}" for m in history[-6:])
 
 # embedding model
-embeddings = OllamaEmbeddings(model="qwen3-embedding:0.6b")
-
+# embeddings = OllamaEmbeddings(model="qwen3-embedding:0.6b")
+# embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
+# embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+EMBED_MODEL = "gemini-embedding-001"
+embeddings = GoogleGenerativeAIEmbeddings(
+    model=f"models/{EMBED_MODEL}",
+    google_api_key=os.environ["GOOGLE_API_KEY"],
+)
 # vector store
 vectordb = Chroma(
     collection_name="yt_transcipts",
     embedding_function=embeddings,
-    persist_directory="./chroma_db",
+    persist_directory=f"./chroma_db_{EMBED_MODEL}",
 )
 
 def build_chunks(video_id, size=500, overlap = 3):

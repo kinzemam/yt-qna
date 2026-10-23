@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 from rag import retrieve
-
+import time
 def is_hit(doc, gold):
     overlap = min(doc.metadata["end"], gold["end"]) - max(doc.metadata["start"], gold["start"])
     return overlap >= min(3, 0.5 * (gold["end"] - gold["start"]))
@@ -13,6 +13,7 @@ def evaluate(path, k=5):
 
     for item in data:
         docs = retrieve(item["video_id"], item["question"], k)
+        time.sleep(0.7)
         rank = next((i + 1 for i, d in enumerate(docs) if is_hit(d, item)), None)
 
         by_type[item["type"]][1] += 1

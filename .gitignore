@@ -13,7 +13,7 @@ venv/
 .env.*
 
 # Chroma
-chroma_db/
+chroma_db*/
 
 .env
 .venv/

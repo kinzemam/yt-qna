@@ -20,6 +20,8 @@ export default function App() {
         return savedUser ? JSON.parse(savedUser) : null;
     });
 
+    const [error, setError] = useState(null);
+
     const [passwordCheck, setPasswordCheck] = useState(true);
 
     async function loginSub(event) {
@@ -28,9 +30,7 @@ export default function App() {
         const formData = new FormData(event.target);
         const data = Object.fromEntries(formData.entries());
         try {
-            const result = await axios.post("http://127.0.0.1:8000/login", data, {
-                withCredentials: true,
-            });
+            const result = await axios.post("http://127.0.0.1:8000/login", data);
             if (result.status == 200) {
                 const token = result.data["access_token"];
                 const response = await axios.get("http://127.0.0.1:8000/me", {
@@ -43,6 +43,7 @@ export default function App() {
                     localStorage.setItem("token", token);
                     localStorage.setItem("user", JSON.stringify(response.data));
                     setUser(response.data);
+                    setError(null);
                 }
             }
         } catch (err) {
@@ -50,6 +51,7 @@ export default function App() {
             if (err.response && err.response.status === 401) {
                 setPasswordCheck(false);
                 console.log(err.response.data)
+                setError(err.response.data.detail)
             }
         }
     }
@@ -74,6 +76,7 @@ export default function App() {
                     email: data.email,
                     password: data.password
                 })
+                setError(null)
                 console.log("Login success:", loginResult);
                 if (loginResult.status == 200) {
                     const token = loginResult.data["access_token"]
@@ -91,21 +94,22 @@ export default function App() {
                 }
             }
         } catch (err) {
-            console.log(err.response)
+            console.log(err.response.data)
+            setError(err.response.data.detail)
         }
     }
 
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/signup" element={ user ? <Navigate to={'/me'} /> : <Signup handleSubmit={signupSub} />} />
+                <Route path="/signup" element={user ? <Navigate to={'/me'} /> : <Signup handleSubmit={signupSub} error={error} />} />
                 <Route
                     path="/login"
                     element={
                         user ? (
                             <Navigate to="/me" />
                         ) : (
-                            <Login handleSubmit={loginSub} passwordCheck={passwordCheck} />
+                                <Login handleSubmit={loginSub} error={error} />
                         )
                     }
                 />

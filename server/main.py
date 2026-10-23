@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from db import get_conn
 from chats import create_chat, add_message, get_chat_owner, list_chats, get_messages
 from typing import Optional
+    
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,

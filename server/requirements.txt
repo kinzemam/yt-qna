@@ -11,3 +11,6 @@ flashrank
 psycopg[binary]
 bcrypt
 pyjwt
+fastembed 
+langchain-community
+langchain-google-genai

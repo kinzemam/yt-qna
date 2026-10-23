@@ -154,3 +154,14 @@ border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(163, 38, 38, 0.53) !important;
   color: rgb(84, 10, 10);
 }
+.errorBox{
+  width: 100%;
+  background: rgba(163, 38, 38, 0.53) !important;
+  color: rgb(84, 10, 10);
+  text-align: center;
+}
+
+.errorBox input{
+  background: none;
+  border: none;
+}

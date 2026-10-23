@@ -17,10 +17,14 @@ export default function Signup(props) {
                     <input type="password" className="form-control" id="password" name="password" placeholder="Your Password" />
                     {/* <p className="mx-1 my-2" ><u><a href="/">Forgot Password</a></u></p> */}
                 </div>
-                <div className="mb-1 text-center">
+                {props.error && (<div className="errorBox mb-3 btn"><input className="px-2 py-2 btn " type="text" name="error" id="error" value={props.error} disabled/></div>) }
+                <div className="mb-3 text-center">
                     <input type="submit" className="px-3 py-2 btn btn-outline-dark my-btn" value="Sign Up" />
                 </div>
             </form>
+            <div className="mb-1 text-center">
+                    <a href="/login"><input type="submit" className="px-3 py-2 btn btn-dark my-btn" value="Sign In" /></a>
+            </div>
         </div>
     </div>
 }
