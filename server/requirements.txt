@@ -9,3 +9,4 @@ psycopg[binary]
 bcrypt
 pyjwt
 langchain-google-genai
+uvicorn
