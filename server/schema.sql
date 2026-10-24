@@ -1,0 +1,19 @@
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE chats (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  video_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE messages (
+  id SERIAL PRIMARY KEY,
+  chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
