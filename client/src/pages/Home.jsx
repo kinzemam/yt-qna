@@ -96,7 +96,17 @@ export default function Home(props) {
         <div>
             <Header />
             <div className="container text-center auth px-3 py-3">
-
+                <div className="mb-3">
+                    <small className="d-block mb-1">Try a sample video:</small>
+                    <button type="button" className="btn btn-sm btn-outline-dark me-2"
+                        onClick={() => { setVideoId("sMxx_NfWmfE"); setChatId(null); setMessages([]) }}>
+                        Science Q&amp;A (24 min)
+                    </button>
+                    <button type="button" className="btn btn-sm btn-outline-dark"
+                        onClick={() => { setVideoId("NjN00cM18Z4"); setChatId(null); setMessages([]) }}>
+                        TypeScript lecture (51 min)
+                    </button>
+                </div>
                 <form onSubmit={askQuestion} className="my-4">
                     <label htmlFor="video-id" className="form-label px-1">Video ID</label>
                     <input
@@ -128,7 +138,7 @@ export default function Home(props) {
                     />
                 </form>
                 <div className="text-start my-4">
-                    {messages.map((m,i) =>
+                    {messages.map((m, i) =>
                         m.role === "user" ? (
                             <p key={i}><strong>You:</strong> {m.content}</p>
                         ) : (
