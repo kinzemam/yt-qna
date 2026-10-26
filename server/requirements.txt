@@ -2,7 +2,7 @@ youtube-transcript-api
 langchain-core
 python-dotenv
 langchain-groq
-langchain-chroma
+langchain-chroma==1.1.0
 numpy
 fastapi
 psycopg[binary]
@@ -10,3 +10,4 @@ bcrypt
 pyjwt
 langchain-google-genai
 uvicorn
+chromadb==1.5.9
