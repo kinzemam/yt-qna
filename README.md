@@ -2,6 +2,8 @@
 
 Ask questions about any YouTube video and get answers grounded in its transcript, with timestamps that point to the relevant moments. Users sign up, log in, and keep their own saved conversations.
 
+**Live demo:** https://yt-qna.vercel.app (hosted on free plans, so after a quiet period the first request can take about a minute to wake the backend up). Two sample videos are built in, so you can sign up and ask a question right away.
+
 ![App screenshot](docs/screenshot.png)
 
 ## Features
@@ -37,17 +39,16 @@ Metrics: **Hit@k** (the right chunk is in the top k) and **MRR** (how high it is
 | + small reranker (FlashRank) | 65.4% | 88.5% | 0.751 | 50.0% | 85.7% | 0.632 |
 | + larger reranker (MiniLM-L-12) | 88.5% | 100% | 0.926 | 53.6% | 92.9% | 0.687 |
 | bge-small embeddings | 84.6% | 96.2% | 0.894 | 46.4% | 82.1% | 0.599 |
+| **500 + overlap + Gemini embeddings (final)** | 92.3% | 100% | 0.952 | 85.7% | 100% | 0.923 |
 
 What I found:
 
 - Very small chunks (300 characters) hurt on both videos. 800 characters was about the same as 500.
 - Both rerankers I tried made results worse than plain vector search on this data.
 - A smaller local embedding model (bge-small) scored clearly lower than Qwen3-Embedding-0.6B.
-- With Qwen3 and the chosen chunking, the right chunk is always in the top 5, but on the long lecture it is ranked first only about half the time (a neighbouring chunk often ranks higher). The app sends all 5 chunks to the LLM, so it still sees the right passage.
+- With Qwen3 and the chosen chunking, the right chunk is always in the top 5, but on the long lecture it is ranked first only about half the time (a neighbouring chunk often ranks higher). The app sends all 5 chunks to the LLM, so it still sees the right passage. Switching to Gemini embeddings improved this ranking problem a lot (see below).
 
-**Final embedding model: Gemini.** The app uses Google's `gemini-embedding-001` through the Gemini API, so it does not need a local model server. On the 24-minute talk it scored Hit@1 92.3%, Hit@5 100% and MRR 0.952, compared with 96.2%, 100% and 0.981 for Qwen3 (a difference of one question at k=1).
-
-<!-- TODO: add the lecture-video numbers for Gemini -->
+**Final embedding model: Gemini.** The app uses Google's `gemini-embedding-001` through the Gemini API, so it does not need a local model server. With the same chunking it scored about the same as Qwen3 on the talk (Hit@1 92.3% vs 96.2%, a difference of one question) and much better on the long lecture: Hit@1 rose from 53.6% to 85.7% and MRR from 0.715 to 0.923, with Hit@5 at 100% on both videos.
 
 Limits of this evaluation: the questions are mine, there are only two videos, and it measures retrieval, not the quality of the final answers.
 
@@ -57,6 +58,20 @@ Limits of this evaluation: the questions are mine, there are only two videos, an
 - **Backend:** FastAPI, PyJWT, bcrypt, psycopg
 - **Database:** PostgreSQL (users, chats, messages), ChromaDB (vectors)
 - **AI:** LangChain, Groq (LLM), Google Gemini embeddings (`gemini-embedding-001`)
+- **Deployment:** Docker, Render (backend), Vercel (frontend), Neon (PostgreSQL)
+
+## Deployment
+
+| Part | Where |
+|---|---|
+| React frontend | Vercel |
+| FastAPI backend, built from `server/Dockerfile` | Render (free web service) |
+| PostgreSQL | Neon (free) |
+| Vectors | ChromaDB on the container's disk, seeded with two pre-embedded sample videos |
+
+- The free Render plan has no persistent disk. On every start the container copies the sample videos from `server/seed_chroma` into the vector folder, so they answer instantly and cost no embedding quota. Any other video is embedded on its first question and kept only until the service restarts.
+- Backend environment variables: `DATABASE_URL`, `SECRET_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY`, `FRONTEND_ORIGIN` (the allowed website address for CORS) and `PORT`. Frontend: `VITE_API_URL` (the backend address).
+- `docker-compose.yml` starts the backend and a Postgres container. `docker-compose.codespaces.yml` is a variant that uses host networking, which is the one that worked in GitHub Codespaces, where container-to-container networking was blocked.
 
 ## API
 
@@ -71,7 +86,7 @@ Limits of this evaluation: the questions are mine, there are only two videos, an
 
 ## Run locally
 
-**Prerequisites:** Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js, PostgreSQL, a [Groq](https://console.groq.com) API key and a [Google AI Studio](https://aistudio.google.com/apikey) API key.
+**Prerequisites:** Python 3.12, Node.js, PostgreSQL, a [Groq](https://console.groq.com) API key and a [Google AI Studio](https://aistudio.google.com/apikey) API key.
 
 1. Get a Groq API key and a Gemini API key from Google AI Studio.
 2. Create a PostgreSQL database called `ytqa` and run:
@@ -106,8 +121,10 @@ Limits of this evaluation: the questions are mine, there are only two videos, an
 4. Start the backend:
    ```
    cd server
-   uv sync
-   uv run uvicorn main:app --reload
+   python -m venv .venv
+   source .venv/bin/activate   # Git Bash on Windows: source .venv/Scripts/activate
+   pip install -r requirements.txt
+   uvicorn main:app --reload
    ```
 5. Start the frontend:
    ```
@@ -123,11 +140,12 @@ Limits of this evaluation: the questions are mine, there are only two videos, an
 
 ```
 cd server
-uv run eval.py
+python eval.py
 ```
 
 ## Known limitations and next steps
 
-- The first question about a new, long video is slow because the whole transcript has to be embedded, and on the free Gemini tier that is rate-limited, so an hour-long video can take a few minutes.
+- Videos other than the two samples have to be embedded on their first question. On the free Gemini tier, which is rate-limited, a long video can take several minutes, and the embeddings are lost when the free Render service restarts.
+- Free hosting: the backend sleeps after about 15 minutes without traffic and takes about a minute to wake up.
 - The JWT is kept in `localStorage`, and tokens cannot be revoked before they expire (24 hours).
-- Not deployed yet. Next: Docker, deployment, and hybrid (keyword + vector) search to improve ranking on technical lectures.
+- Next: store vectors in Postgres (for example with pgvector) so they survive restarts, and test retrieval on more videos (podcasts, very long talks) to check that the results hold.
