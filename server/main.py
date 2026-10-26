@@ -7,13 +7,18 @@ import psycopg
 from auth import create_user, verify_user, user_exists, create_token,decode_token
 from fastapi import HTTPException
 from db import get_conn
+import os
 from chats import create_chat, add_message, get_chat_owner, list_chats, get_messages
 from typing import Optional
-    
+
 app = FastAPI()
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+if os.environ.get("FRONTEND_ORIGIN"):
+    origins.append(os.environ["FRONTEND_ORIGIN"])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
